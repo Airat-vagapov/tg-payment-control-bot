@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InvoiceStatus {
+  unpaid
+  pending
+  paid
+  excused
+  kicked
+}
+
+enum PaymentStatus {
+  created
+  pending
+  succeeded
+  failed
+}
+
+model Group {
+  id          Int      @id @default(autoincrement())
+  tgChatId    BigInt   @unique
+  title       String
+  timezone    String   @default("Europe/Berlin")
+  dueDay      Int      @default(5)
+  dueHour     Int      @default(18)
+  amountCents Int      @default(50000)
+  createdAt   DateTime @default(now())
+
+  members     GroupMember[]
+  invoices    Invoice[]
+}
+
+model Member {
+  id        Int      @id @default(autoincrement())
+  tgUserId  BigInt   @unique
+  username  String?
+  firstName String?
+  lastName  String?
+  createdAt DateTime @default(now())
+
+  groups    GroupMember[]
+  invoices  Invoice[]
+  audits    AuditLog[] @relation("AuditActor")
+}
+
+model GroupMember {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  memberId  Int
+  active    Boolean  @default(true)
+  joinedAt  DateTime @default(now())
+
+  group     Group    @relation(fields: [groupId], references: [id])
+  member    Member   @relation(fields: [memberId], references: [id])
+
+  @@unique([groupId, memberId])
+}
+
+model Invoice {
+  id          Int          @id @default(autoincrement())
+  groupId     Int
+  memberId    Int
+  period      String       // "YYYY-MM"
+  amountCents Int
+  dueAt       DateTime
+  status      InvoiceStatus @default(unpaid)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  paidAt      DateTime?
+
+  group       Group        @relation(fields: [groupId], references: [id])
+  member      Member       @relation(fields: [memberId], references: [id])
+  payments    Payment[]
+
+  @@unique([groupId, memberId, period])
+  @@index([groupId, period, status])
+}
+
+model Payment {
+  id           Int           @id @default(autoincrement())
+  invoiceId    Int
+  provider     String        // "mock", "yookassa", ...
+  externalId   String?       @unique
+  amountCents  Int
+  status       PaymentStatus @default(created)
+  rawWebhook   Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  actorId    Int?
+  actor      Member?  @relation("AuditActor", fields: [actorId], references: [id])
+}
