@@ -3,32 +3,35 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch --no-check src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
-  "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "prisma:push": "prisma db push",
-    "prisma:studio": "prisma studio"
-  },
   "dependencies": {
     "@grammyjs/runner": "^2.0.3",
+    "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "dotenv": "^17.2.3",
     "fastify": "^5.7.2",
     "grammy": "^1.39.3",
     "luxon": "^3.7.2",
+    "pg": "^8.17.2",
     "pg-boss": "^12.7.1",
     "pino-pretty": "^13.1.3",
     "prisma": "^7.3.0"
   },
   "devDependencies": {
+    "@types/luxon": "^3.7.1",
     "@types/node": "^25.1.0",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

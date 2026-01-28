@@ -10,7 +10,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum InvoiceStatus {
@@ -32,7 +31,7 @@ model Group {
   id          Int      @id @default(autoincrement())
   tgChatId    BigInt   @unique
   title       String
-  timezone    String   @default("Europe/Berlin")
+  timezone    String   @default("Europe/Moscow")
   dueDay      Int      @default(5)
   dueHour     Int      @default(18)
   amountCents Int      @default(50000)
