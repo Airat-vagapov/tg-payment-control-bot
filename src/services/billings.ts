@@ -54,18 +54,18 @@ export async function ensureInvoiceAndSchedule(groupId: number, memberId: number
   const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId } });
   const period = currentPeriod(group.timezone);
 
-  // const dueAt = computeDueAt(group.timezone, group.dueDay, group.dueHour, period);
-  // const dueAtJs = dueAt.toJSDate();
+  const dueAt = computeDueAt(group.timezone, group.dueDay, group.dueHour, period);
+  const dueAtJs = dueAt.toJSDate();
 
   // Конструкция для тестов 
-  const now = DateTime.now().setZone(group.timezone);
-  const testMin = Number(process.env.TEST_DUE_IN_MINUTES ?? 0);
+  // const now = DateTime.now().setZone(group.timezone);
+  // const testMin = Number(process.env.TEST_DUE_IN_MINUTES ?? 0);
 
-  const dueAt = testMin > 0
-    ? now.plus({ minutes: testMin })
-    : computeDueAt(group.timezone, group.dueDay, group.dueHour, period);
-  console.log(dueAt)
-  const dueAtJs = dueAt.toJSDate();
+  // const dueAt = testMin > 0
+  //   ? now.plus({ minutes: testMin })
+  //   : computeDueAt(group.timezone, group.dueDay, group.dueHour, period);
+  // console.log(dueAt)
+  // const dueAtJs = dueAt.toJSDate();
 
 
   const invoice = await prisma.invoice.upsert({
