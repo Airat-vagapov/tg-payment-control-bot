@@ -1,5 +1,5 @@
 import Fastify from "fastify";
-import {env} from "./config/env.js";
+import { env } from "./config/env.js";
 import { bot } from "./bot/bot.js";
 import { boss } from "./jobs/boss.js";
 import { registerJobHandlers } from "./jobs/handlers.js";
@@ -23,7 +23,12 @@ app.get("/health", async () => ({ ok: true }));
 
 async function main() {
   await boss.start();
-  registerJobHandlers(bot);
+
+  boss.on("error", (err) => {
+    app.log.error({ err }, "pg-boss error");
+  });
+
+  await registerJobHandlers(bot);
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen({ port, host: "0.0.0.0" });

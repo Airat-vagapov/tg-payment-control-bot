@@ -4,8 +4,12 @@ import { Bot } from "grammy";
 
 export const JOB_DUE_CHECK = "invoice.due_check";
 
-export function registerJobHandlers(bot: Bot) {
-  boss.work(JOB_DUE_CHECK, async (job) => {
+export async function registerJobHandlers(bot: Bot) {
+
+  await boss.createQueue(JOB_DUE_CHECK);
+
+  await boss.work(JOB_DUE_CHECK, async (job) => {
+
     const { invoiceId } = job.data as { invoiceId: number };
 
     const invoice = await prisma.invoice.findUnique({

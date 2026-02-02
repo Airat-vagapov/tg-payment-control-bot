@@ -13,6 +13,8 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+.env.local
+.env.*.local
 
 # =========================
 # Build / Dist
@@ -54,6 +56,11 @@ Thumbs.db
 # Docker
 # =========================
 .dockerignore
+docker-data/
+postgres-data/
+pgdata/
+mysql-data/
+docker-compose.override.yml
 
 # =========================
 # Prisma (если появится позже)

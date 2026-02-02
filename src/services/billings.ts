@@ -73,7 +73,7 @@ export async function ensureInvoiceAndSchedule(groupId: number, memberId: number
   // ставим job на dueAt (idempotent через singletonKey)
   const singletonKey = `due:${invoice.id}:${invoice.period}`;
   await boss.send(
-    "invoice.due_check",
+    JOB_DUE_CHECK,
     { invoiceId: invoice.id },
     { startAfter: dueAtJs, singletonKey }
   );
