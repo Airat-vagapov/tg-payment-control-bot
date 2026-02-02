@@ -19,6 +19,7 @@ function payKb(invoiceId: number) {
 }
 
 bot.command("setup", async (ctx) => {
+
   if (!ctx.chat || (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup")) {
     return ctx.reply("Команда /setup должна быть выполнена в группе.");
   }

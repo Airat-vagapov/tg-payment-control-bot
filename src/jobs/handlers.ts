@@ -1,6 +1,6 @@
 import { boss } from "./boss.js";
 import { prisma } from "../db/prisma.js";
-import { Bot } from "grammy";
+import { GrammyError, HttpError, Bot } from "grammy";
 
 export const JOB_DUE_CHECK = "invoice.due_check";
 
@@ -8,9 +8,23 @@ export async function registerJobHandlers(bot: Bot) {
 
   await boss.createQueue(JOB_DUE_CHECK);
 
-  await boss.work(JOB_DUE_CHECK, async (job) => {
+  await boss.work(JOB_DUE_CHECK, async (jobs) => {
+    const job = jobs?.[0]
+    const data = job.data as any;
 
-    const { invoiceId } = job.data as { invoiceId: number };
+    if (!job?.data || typeof job.data.invoiceId !== "number") {
+      console.warn("SKIP BAD JOB", {
+        job0: job ? { id: job.id, name: job.name, data: job.data } : null,
+        jobsLen: Array.isArray(jobs) ? jobs.length : null,
+      });
+      return;
+    }
+    const invoiceId = data.invoiceId;
+
+    console.log("DUE JOB FIRED", {
+      invoiceId,
+      now: new Date().toISOString(),
+    });
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
@@ -23,12 +37,49 @@ export async function registerJobHandlers(bot: Bot) {
     if (invoice.status === "kicked") return;
 
     // кикаем
+    console.log("TRY KICK", {
+      chatId: invoice.group.tgChatId.toString(),
+      userId: Number(invoice.member.tgUserId),
+      status: invoice.status,
+    });
     const chatId = invoice.group.tgChatId;
+    const chatIdStr = chatId.toString();
     const userId = Number(invoice.member.tgUserId);
 
     // "кик без вечного бана": ban + unban
-    await bot.api.banChatMember(chatId.toString(), userId);
-    await bot.api.unbanChatMember(chatId.toString(), userId);
+    try {
+      await bot.api.banChatMember(chatIdStr, userId, {
+        until_date: Math.floor(Date.now() / 10000) + 60,
+      })
+
+      console.log("KICK OK", { chatId, userId });
+    } catch (err: any) {
+      if (err instanceof GrammyError) {
+        console.error("TELEGRAM API ERROR", {
+          description: err.description,
+          error_code: err.error_code,
+          method: err.method,
+          payload: err.payload,
+        });
+      } else if (err instanceof HttpError) {
+        console.error("TELEGRAM HTTP ERROR", err);
+      } else {
+        console.error("UNKNOWN ERROR", err);
+      }
+
+      // ВАЖНО: не throw, иначе pg-boss будет ретраить бесконечно
+      // Можно записать в audit и завершить job.
+      await prisma.auditLog.create({
+        data: {
+          action: "KICK_FAILED",
+          data: { chatId, userId, invoiceId: invoice.id, err: String(err) },
+        },
+      });
+
+      return;
+    }
+    // await bot.api.banChatMember(chatId.toString(), userId);
+    // await bot.api.unbanChatMember(chatId.toString(), userId);
 
     await prisma.invoice.update({
       where: { id: invoice.id },
