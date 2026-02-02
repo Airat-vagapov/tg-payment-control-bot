@@ -97,7 +97,7 @@ bot.command("status", async (ctx) => {
   const inv = s.invoice;
   if (!inv) return ctx.reply(`Период ${s.period}: счёт ещё не создан. Напиши /pay`);
 
-  await ctx.reply(`Период ${s.period}\nСтатус: ${inv.status}\nСумма: ${(inv.amountCents / 100).toFixed(2)}\nДедлайн: ${inv.dueAt.toISOString()}`);
+  await ctx.reply(`Номер счета: ${inv.id}\nПериод ${s.period}\nСтатус: ${inv.status}\nСумма: ${(inv.amountCents / 100).toFixed(2)}\nДедлайн: ${inv.dueAt.toISOString()}`);
 });
 
 bot.on("callback_query:data", async (ctx) => {
