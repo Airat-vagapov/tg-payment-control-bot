@@ -4,22 +4,29 @@ import { GrammyError, HttpError, Bot } from "grammy";
 
 export const JOB_DUE_CHECK = "invoice.due_check";
 
+type DueCheckJobData = {
+  invoiceId: number;
+};
+
+function isDueCheckJobData(x: unknown): x is DueCheckJobData {
+  return !!x && typeof (x as any).invoiceId === "number";
+}
+
 export async function registerJobHandlers(bot: Bot) {
 
   await boss.createQueue(JOB_DUE_CHECK);
 
   await boss.work(JOB_DUE_CHECK, async (jobs) => {
-    const job = jobs?.[0]
-    const data = job.data as any;
+    const job = jobs?.[0];
 
-    if (!job?.data || typeof job.data.invoiceId !== "number") {
+    if (!job || !isDueCheckJobData(job.data)) {
       console.warn("SKIP BAD JOB", {
         job0: job ? { id: job.id, name: job.name, data: job.data } : null,
         jobsLen: Array.isArray(jobs) ? jobs.length : null,
       });
       return;
     }
-    const invoiceId = data.invoiceId;
+    const invoiceId = job.data.invoiceId;
 
     console.log("DUE JOB FIRED", {
       invoiceId,
@@ -49,7 +56,8 @@ export async function registerJobHandlers(bot: Bot) {
     // "кик без вечного бана": ban + unban
     try {
       await bot.api.banChatMember(chatIdStr, userId, {
-        until_date: Math.floor(Date.now() / 10000) + 60,
+        // Telegram expects `until_date` as Unix time (seconds)
+        until_date: Math.floor(Date.now() / 1000) + 60,
       })
 
       console.log("KICK OK", { chatId, userId });
@@ -72,7 +80,7 @@ export async function registerJobHandlers(bot: Bot) {
       await prisma.auditLog.create({
         data: {
           action: "KICK_FAILED",
-          data: { chatId, userId, invoiceId: invoice.id, err: String(err) },
+          data: { chatId: chatIdStr, userId, invoiceId: invoice.id, err: String(err) },
         },
       });
 
@@ -89,7 +97,7 @@ export async function registerJobHandlers(bot: Bot) {
     await prisma.auditLog.create({
       data: {
         action: "KICKED_BY_DUE",
-        data: { invoiceId: invoice.id, tgChatId: chatId.toString(), tgUserId: userId },
+        data: { invoiceId: invoice.id, tgChatId: chatIdStr, tgUserId: userId },
       },
     });
   });
