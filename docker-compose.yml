@@ -1,0 +1,44 @@
+# services:
+#   db:
+#     image: postgres:16
+#     container_name: tgpay-postgres
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: tgpay
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - tgpay_pg:/var/lib/postgresql/data
+
+# volumes:
+#   tgpay_pg:
+
+#   version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: tgpay-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: tgpay
+      POSTGRES_PASSWORD: tgpay_pass
+      POSTGRES_DB: tgpay
+    volumes:
+      - tgpay_pg:/var/lib/postgresql/data
+
+  bot:
+    build: .
+    container_name: tgpay-bot
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://tgpay:tgpay_pass@db:5432/tgpay
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+
+volumes:
+  tgpay_pg:
