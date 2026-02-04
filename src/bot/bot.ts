@@ -43,6 +43,18 @@ function payKb(invoiceId: number) {
     .text("✅ Тест: отметить оплачено", `mock_paid:${invoiceId}`);
 }
 
+function formatDateTime(value: Date | string, timeZone: string) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return `${new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date)}`;
+}
+
 async function resolveSelectedGroupOrReply(ctx: any) {
   if (!ctx.chat || ctx.chat.type !== "private") {
     await ctx.reply("Эта команда работает только в личном чате с ботом.");
@@ -152,14 +164,14 @@ bot.command("pay", async (ctx) => {
 
   if (paid) {
     return ctx.reply(
-      `Этот период уже оплачен: ${paid.period}${paid.paidAt ? `\nДата оплаты: ${paid.paidAt.toISOString()}` : ""}`
+      `Этот период уже оплачен: ${paid.period}${paid.paidAt ? `\nДата оплаты: ${formatDateTime(paid.paidAt, group.timezone)}` : ""}`
     );
   }
 
   const { invoice, dueAt } = await ensureInvoiceAndSchedule(group.id, member.id);
 
   await ctx.reply(
-    `Группа: ${group.title}\nСчёт за период: ${invoice.period}\nСумма: ${(invoice.amountCents / 100).toFixed(2)}\nДедлайн: ${dueAt}\nСтатус: ${invoice.status}`,
+    `Группа: ${group.title}\nСчёт за период: ${invoice.period}\nСумма: ${(invoice.amountCents / 100).toFixed(2)}\nДедлайн: ${formatDateTime(dueAt, group.timezone)}\nСтатус: ${invoice.status}`,
     { reply_markup: payKb(invoice.id) }
   );
 });
@@ -199,7 +211,7 @@ bot.command("status", async (ctx) => {
   if (!inv) return ctx.reply(`Период ${s.period}: счёт ещё не создан. Напиши /pay`);
 
   await ctx.reply(
-    `Группа: ${s.group.title}\nНомер счета: ${inv.id}\nПериод ${s.period}\nСтатус: ${inv.status}\nСумма: ${(inv.amountCents / 100).toFixed(2)}\nДедлайн: ${inv.dueAt.toISOString()}`
+    `Группа: ${s.group.title}\nНомер счета: ${inv.id}\nПериод ${s.period}\nСтатус: ${inv.status}\nСумма: ${(inv.amountCents / 100).toFixed(2)}\nДедлайн: ${formatDateTime(inv.dueAt, s.group.timezone)}`
   );
 });
 
