@@ -39,6 +39,7 @@ model Group {
 
   members     GroupMember[]
   invoices    Invoice[]
+  selectedBy  Member[] @relation("SelectedGroup")
 }
 
 model Member {
@@ -47,8 +48,10 @@ model Member {
   username  String?
   firstName String?
   lastName  String?
+  selectedGroupId Int?
   createdAt DateTime @default(now())
 
+  selectedGroup Group? @relation("SelectedGroup", fields: [selectedGroupId], references: [id])
   groups    GroupMember[]
   invoices  Invoice[]
   audits    AuditLog[] @relation("AuditActor")
