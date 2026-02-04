@@ -43,7 +43,8 @@ function payKb(invoiceId: number) {
     .text("✅ Тест: отметить оплачено", `mock_paid:${invoiceId}`);
 }
 
-function formatDateTime(value: Date | string, timeZone: string) {
+function formatDateTime(value: Date | string | null, timeZone: string) {
+  if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
   return `${new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
@@ -191,6 +192,9 @@ bot.command("pay", async (ctx) => {
 bot.command("groups", async (ctx) => {
   if (!ctx.chat || ctx.chat.type !== "private") {
     return ctx.reply("Команда /groups работает в личке с ботом.");
+  }
+  if (!ctx.from) {
+    return ctx.reply("Не удалось определить пользователя.");
   }
 
   await upsertMember(ctx.from as any);
