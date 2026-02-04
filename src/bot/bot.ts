@@ -52,7 +52,19 @@ function formatDateTime(value: Date | string, timeZone: string) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    timeZone,
   }).format(date)}`;
+}
+
+function formatInvoiceStatus(status: "unpaid" | "pending" | "paid" | "excused" | "kicked") {
+  const map = {
+    unpaid: "Не оплачен",
+    pending: "Ожидает оплаты",
+    paid: "Оплачен",
+    excused: "Освобожден",
+    kicked: "Исключен",
+  } as const;
+  return map[status] ?? status;
 }
 
 async function resolveSelectedGroupOrReply(ctx: any) {
@@ -171,7 +183,7 @@ bot.command("pay", async (ctx) => {
   const { invoice, dueAt } = await ensureInvoiceAndSchedule(group.id, member.id);
 
   await ctx.reply(
-    `Группа: ${group.title}\nСчёт за период: ${invoice.period}\nСумма: ${(invoice.amountCents / 100).toFixed(2)}\nДедлайн: ${formatDateTime(dueAt, group.timezone)}\nСтатус: ${invoice.status}`,
+    `Группа: ${group.title}\nСчёт за период: ${invoice.period}\nСумма: ${(invoice.amountCents / 100).toFixed(2)}\nДедлайн: ${formatDateTime(dueAt, group.timezone)}\nСтатус: ${formatInvoiceStatus(invoice.status)}`,
     { reply_markup: payKb(invoice.id) }
   );
 });
@@ -211,7 +223,7 @@ bot.command("status", async (ctx) => {
   if (!inv) return ctx.reply(`Период ${s.period}: счёт ещё не создан. Напиши /pay`);
 
   await ctx.reply(
-    `Группа: ${s.group.title}\nНомер счета: ${inv.id}\nПериод ${s.period}\nСтатус: ${inv.status}\nСумма: ${(inv.amountCents / 100).toFixed(2)}\nДедлайн: ${formatDateTime(inv.dueAt, s.group.timezone)}`
+    `Группа: ${s.group.title}\nНомер счета: ${inv.id}\nПериод ${s.period}\nСтатус: ${formatInvoiceStatus(inv.status)}\nСумма: ${(inv.amountCents / 100).toFixed(2)}\nДедлайн: ${formatDateTime(inv.dueAt, s.group.timezone)}`
   );
 });
 
