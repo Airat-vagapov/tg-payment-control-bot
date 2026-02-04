@@ -113,3 +113,65 @@ export async function getInvoiceStatus(groupTgChatId: bigint, tgUserId: bigint) 
 
   return { group, member, period, invoice };
 }
+
+export async function getInvoiceStatusByGroupId(groupId: number, tgUserId: bigint) {
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+  if (!group) return null;
+
+  const period = currentPeriod(group.timezone);
+  const member = await prisma.member.findUnique({ where: { tgUserId } });
+  if (!member) return null;
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { groupId_memberId: { groupId: group.id, memberId: member.id } },
+    select: { id: true, active: true },
+  });
+  if (!membership || !membership.active) return null;
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { groupId_memberId_period: { groupId: group.id, memberId: member.id, period } },
+  });
+
+  return { group, member, period, invoice };
+}
+
+export async function listMemberGroups(tgUserId: bigint) {
+  const member = await prisma.member.findUnique({
+    where: { tgUserId },
+    include: {
+      groups: {
+        where: { active: true },
+        include: { group: true },
+        orderBy: { joinedAt: "asc" },
+      },
+      selectedGroup: true,
+    },
+  });
+  if (!member) return null;
+  return {
+    member,
+    selectedGroupId: member.selectedGroupId,
+    groups: member.groups.map((x) => x.group),
+  };
+}
+
+export async function setSelectedGroupForMember(params: {
+  tgUserId: bigint;
+  groupId: number;
+}) {
+  const { tgUserId, groupId } = params;
+  const member = await prisma.member.findUnique({ where: { tgUserId } });
+  if (!member) return null;
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { groupId_memberId: { groupId, memberId: member.id } },
+    select: { id: true, active: true },
+  });
+  if (!membership || !membership.active) return null;
+
+  return prisma.member.update({
+    where: { id: member.id },
+    data: { selectedGroupId: groupId },
+    include: { selectedGroup: true },
+  });
+}
