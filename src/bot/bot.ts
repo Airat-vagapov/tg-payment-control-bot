@@ -15,6 +15,20 @@ import { currentPeriod } from "../util/time.js";
 
 export const bot = new Bot(env.BOT_TOKEN);
 
+bot.use(async (ctx, next) => {
+  console.log("UPDATE", {
+    id: ctx.update.update_id,
+    chatType: ctx.chat?.type,
+    text: (ctx.message as any)?.text,
+    from: ctx.from?.id,
+  });
+  await next();
+});
+
+bot.catch((err) => {
+  console.error("BOT ERROR", err.error);
+});
+
 function guardGroup(chatId: bigint) {
   if (env.ALLOWED_GROUP_CHAT_ID && chatId !== env.ALLOWED_GROUP_CHAT_ID) return false;
   return true;
