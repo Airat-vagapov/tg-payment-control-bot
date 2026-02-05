@@ -154,17 +154,24 @@ bot.command("setup", async (ctx) => {
   );
 });
 
-bot.on("message", async (ctx) => {
-  if (!ctx.chat || !isGroupChat(ctx.chat.type) || !ctx.from) return;
+bot.on("message", async (ctx, next) => {
+  if (!ctx.chat || !isGroupChat(ctx.chat.type) || !ctx.from) {
+    return next();
+  }
 
   const chatId = BigInt(ctx.chat.id);
-  if (!guardGroup(chatId)) return;
+  if (!guardGroup(chatId)) {
+    return next();
+  }
 
   const group = await prisma.group.findUnique({ where: { tgChatId: chatId } });
-  if (!group) return;
+  if (!group) {
+    return next();
+  }
 
   const member = await upsertMember(ctx.from as any);
   await ensureGroupMember(group.id, member.id);
+  await next();
 });
 
 bot.on("chat_member", async (ctx) => {
