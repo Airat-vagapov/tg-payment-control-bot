@@ -128,9 +128,29 @@ bot.command("setup", async (ctx) => {
     amountCents: env.DEFAULT_AMOUNT_CENTS,
   });
 
+  // Привязываем автора /setup к группе сразу, без ожидания chat_member update.
+  if (ctx.from) {
+    const member = await upsertMember(ctx.from as any);
+    await ensureGroupMember(g.id, member.id);
+    await setSelectedGroupForMember({ tgUserId: BigInt(ctx.from.id), groupId: g.id });
+  }
+
   await ctx.reply(
     `Группа подключена.\nСумма: ${(g.amountCents / 100).toFixed(2)}\nДедлайн: ${g.dueDay} число, ${String(g.dueHour).padStart(2, "0")}:00 (${g.timezone})`
   );
+});
+
+bot.on("message", async (ctx) => {
+  if (!ctx.chat || !isGroupChat(ctx.chat.type) || !ctx.from) return;
+
+  const chatId = BigInt(ctx.chat.id);
+  if (!guardGroup(chatId)) return;
+
+  const group = await prisma.group.findUnique({ where: { tgChatId: chatId } });
+  if (!group) return;
+
+  const member = await upsertMember(ctx.from as any);
+  await ensureGroupMember(group.id, member.id);
 });
 
 bot.on("chat_member", async (ctx) => {
